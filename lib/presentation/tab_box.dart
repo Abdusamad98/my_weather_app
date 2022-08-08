@@ -1,7 +1,10 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:location/location.dart';
 import 'package:my_weather_app/api/models/current/current_weather.dart';
+import 'package:my_weather_app/api/models/one_call/one_call_data.dart';
 import 'package:my_weather_app/api/services/api_provider.dart';
+import 'package:my_weather_app/presentation/weather_detail_page.dart';
 
 class TabBox extends StatefulWidget {
   const TabBox({Key? key}) : super(key: key);
@@ -11,36 +14,24 @@ class TabBox extends StatefulWidget {
 }
 
 class _TabBoxState extends State<TabBox> {
-  Location location = Location();
+  final TextEditingController searchController = TextEditingController();
 
-  late bool _serviceEnabled;
-  late PermissionStatus _permissionGranted;
-  late LocationData _locationData;
-
-  _init() async {
-    _serviceEnabled = await location.serviceEnabled();
-    if (!_serviceEnabled) {
-      _serviceEnabled = await location.requestService();
-      if (!_serviceEnabled) {
-        return;
-      }
-    }
-    _permissionGranted = await location.hasPermission();
-    if (_permissionGranted == PermissionStatus.denied) {
-      _permissionGranted = await location.requestPermission();
-      if (_permissionGranted != PermissionStatus.granted) {
-        return;
-      }
-    }
-
-    _locationData = await location.getLocation();
-    print("${_locationData.latitude}" + " AND " + "${_locationData.longitude}");
-  }
+  late CurrentWeather currentWeather;
+  bool isLoading = true;
 
   @override
   void initState() {
-    _init();
+    _update(searchText: "Tashkent");
     super.initState();
+  }
+
+  Future<void> _update({required String searchText}) async {
+    isLoading = true;
+    setState(() {});
+    currentWeather =
+        await ApiProvider.getCurrentWeatherByText(searchText: searchText);
+    isLoading = false;
+    setState(() {});
   }
 
   @override
@@ -49,20 +40,40 @@ class _TabBoxState extends State<TabBox> {
       appBar: AppBar(
         title: const Text("Weather App"),
       ),
-      body: FutureBuilder(
-        future: ApiProvider.getOneCallApi(),
-        builder:
-            (BuildContext context, AsyncSnapshot<CurrentWeather> snapshot) {
-          if (snapshot.hasData) {
-            var oneCallData = snapshot.data!;
-            return Center(
-              child: Text(oneCallData.name.toString()),
-            );
-          } else
-            return Center(
-              child: Text("Error"),
-            );
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: TextField(
+              controller: searchController,
+            ),
+          ),
+          TextButton(
+              onPressed: () async {
+                _update(searchText: searchController.text);
+              },
+              child: Text("Search")),
+          Expanded(
+              child: isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : Text(currentWeather.name)),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (BuildContext contex) {
+              return WeatherDetailPage(
+                lat: currentWeather.coord.lat,
+                lon: currentWeather.coord.lon,
+              );
+            }),
+          );
         },
+        child: Text("More"),
       ),
     );
   }

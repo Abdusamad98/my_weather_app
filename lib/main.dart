@@ -8,7 +8,6 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
@@ -18,4 +17,4 @@ class MyApp extends StatelessWidget {
   }
 }
 
-//flutter packages pub run build_runner build --delete-conflicting-outputs
+//   flutter packages pub run build_runner build --delete-conflicting-outputs
