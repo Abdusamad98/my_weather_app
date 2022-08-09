@@ -1,37 +1,54 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:location/location.dart';
 import 'package:my_weather_app/api/models/current/current_weather.dart';
-import 'package:my_weather_app/api/models/one_call/one_call_data.dart';
 import 'package:my_weather_app/api/services/api_provider.dart';
 import 'package:my_weather_app/presentation/weather_detail_page.dart';
 
-class TabBox extends StatefulWidget {
-  const TabBox({Key? key}) : super(key: key);
+class WeatherPage extends StatefulWidget {
+  const WeatherPage({Key? key, required this.lon, required this.lat})
+      : super(key: key);
+  final double lon;
+  final double lat;
 
   @override
-  State<TabBox> createState() => _TabBoxState();
+  State<WeatherPage> createState() => _WeatherPageState();
 }
 
-class _TabBoxState extends State<TabBox> {
+class _WeatherPageState extends State<WeatherPage> {
   final TextEditingController searchController = TextEditingController();
 
   late CurrentWeather currentWeather;
   bool isLoading = true;
+  bool isError = false;
 
   @override
   void initState() {
-    _update(searchText: "Tashkent");
+    _init();
     super.initState();
+  }
+
+  void _init() async {
+    isLoading = true;
+    setState(() {});
+    currentWeather = await ApiProvider.getCurrentWeatherByLatLong(
+        latitude: widget.lat, longitude: widget.lon);
+    isLoading = false;
+    setState(() {});
   }
 
   Future<void> _update({required String searchText}) async {
     isLoading = true;
     setState(() {});
-    currentWeather =
-        await ApiProvider.getCurrentWeatherByText(searchText: searchText);
-    isLoading = false;
-    setState(() {});
+    try {
+      currentWeather =
+          await ApiProvider.getCurrentWeatherByText(searchText: searchText);
+      isError = false;
+      isLoading = false;
+      setState(() {});
+    } catch (error) {
+      isError = true;
+      isLoading = false;
+      setState(() {});
+    }
   }
 
   @override
@@ -43,7 +60,7 @@ class _TabBoxState extends State<TabBox> {
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: TextField(
               controller: searchController,
             ),
@@ -52,13 +69,15 @@ class _TabBoxState extends State<TabBox> {
               onPressed: () async {
                 _update(searchText: searchController.text);
               },
-              child: Text("Search")),
+              child: const Text("Search")),
           Expanded(
               child: isLoading
-                  ? Center(
+                  ? const Center(
                       child: CircularProgressIndicator(),
                     )
-                  : Text(currentWeather.name)),
+                  : isError
+                      ? const Text("Error")
+                      : Text(currentWeather.toString())),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -73,7 +92,7 @@ class _TabBoxState extends State<TabBox> {
             }),
           );
         },
-        child: Text("More"),
+        child: const Text("More"),
       ),
     );
   }
